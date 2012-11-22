@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import cv2
 import cv2.cv as cv
+import os
 
 def detect(img, cascade):
     rects = cascade.detectMultiScale(img, scaleFactor=1.3, minNeighbors=4, minSize = (30, 30), flags = cv.CV_HAAR_SCALE_IMAGE)
@@ -17,6 +18,9 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     cascade = cv2.CascadeClassifier("./haardetectors/haarcascade_frontalface_alt.xml")
     nested = cv2.CascadeClassifier("./haardetectors/haarcascade_eye.xml")
+    counter = 0 #counter for training on our own stuff
+    facenum = 0 #index for training face
+    eyenum = 0 #index for training eyes
 
     while True:
         ret, im = cap.read()
@@ -29,10 +33,20 @@ if __name__ == "__main__":
             roi = gray[y1:y2, x1:x2]
             vis_roi = vis[y1:y2, x1:x2]
             subrects = detect(roi.copy(), nested)
+            if (counter > 20):
+                counter = 0
+                facenum += 1
+                print "walla"
+                cv2.imwrite('trainface' + str(facenum) + '.jpg', roi)
+                for x3, y3, x4, y4 in subrects:
+                    eyenum += 1
+                    sub_roi = roi[y3:y4, x3:x4]
+                    cv2.imwrite('traineye' + str(eyenum) + '.jpg', sub_roi)
             draw_rects(vis_roi, subrects, (255, 0, 0))
+            counter += 1
         cv2.imshow('video test', vis)
         key = cv2.waitKey(10)
         if key == 27:
             break
         if key == ord(' '):
-            cv2.imwrite('vid_result.jpg', vis)
+            cv2.imwrite(picdir + 'vid_result.jpg', vis)
