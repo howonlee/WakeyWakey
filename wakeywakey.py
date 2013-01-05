@@ -19,18 +19,28 @@ def draw_rects(img, rects, color):
 def avg(l):
 	return sum(l) / float(len(l))
 
-def get_drowsiness(img):
-	pass
+def get_drowsiness(img, eyesize):
+	#this is just horizontal symmetry for the image
+	copy = cv.fromarray(img.copy())#meaning we just use cv array here
+	topcopy = copy[0:(eyesize // 2), 0:(eyesize)]
+	bottomcopy = copy[(eyesize // 2):(eyesize), 0:(eyesize)]
+	cv.SaveImage("topcopy.jpg", topcopy)
+	cv.SaveImage("bottomcopy.jpg", bottomcopy)
+	diff = cv.CreateMat(eyesize // 2, eyesize, 0)#0 is the type
+	cv.AbsDiff(topcopy, bottomcopy, diff)
+	cv.SaveImage("diff.jpg", diff)
+	score = cv.Sum(diff)[0]
+	print "Score: ", score
 
-def get_eyepic(img):
+def get_eyepic(img, eyesize):
 	img_copy = img.copy()
 	img_height = img_copy.shape[0]
 	img_width = img_copy.shape[1]
 	print "got eye"
 	sub = img_copy[(img_height // 3) + (img_height // 10) : 2 * (img_height // 3), :]#the 8 is a bit of a hack
-	sub = sci.imresize(sub, (15, 20))#flipped because of width and height vs rows and cols
-	get_drowsiness(sub)
-	#cv2.imwrite("foobar.jpg", sub)
+	sub = sci.imresize(sub, (eyesize, eyesize))
+	get_drowsiness(sub, eyesize)
+	cv2.imwrite("eye.jpg", sub)
 
 if __name__ == "__main__":
 	cap = cv2.VideoCapture(0)
@@ -40,6 +50,9 @@ if __name__ == "__main__":
 	counter2 = 0
 	facenum = 0 #index for training face
 	eyenum = 0 #index for training eyes
+
+	#facerect
+	x1s, y1s, x2s, y2s = 0, 0, 0, 0
 
 	while True:
 		ret, im = cap.read()
@@ -52,6 +65,7 @@ if __name__ == "__main__":
 			roi = gray[y1:y2, x1:x2]
 			vis_roi = vis[y1:y2, x1:x2]
 			subrects = detect(roi.copy(), nested)
+			x1s, y1s, x2s, y2s = x1, y1, x2, y2
 			if (counter1 > 20):
 				counter1 = 0
 				facenum += 1
@@ -64,7 +78,7 @@ if __name__ == "__main__":
 					pos = [avg([x3, x4]), avg([y3, y4])]
 					eyepos.append(pos)
 					cv2.imwrite('traineye' + str(eyenum) + '.jpg', sub_roi)
-					get_eyepic(sub_roi)
+					get_eyepic(sub_roi, 20) #numerical params are size of eye
 			if (counter2 > 200):
 				counter2 = 0
 				#now train this crap
